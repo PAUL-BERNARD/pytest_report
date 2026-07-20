@@ -43,14 +43,23 @@ class TestSuite:
         testcase = TestCase(name, time)
         self.testclasses[classname].append(testcase)
 
-    def print_class_percentages(self):
-        total = sum(sum(testcase.time for testcase in self.testclasses[testclass]) for testclass in self.testclasses)
-        print(f"Total duration: {total}s")
+    def print_report(self):
+        total_duration = sum(sum(testcase.time for testcase in self.testclasses[testclass]) for testclass in self.testclasses)
+        print(f"Total duration: {total_duration}s")
+        print(f"{self.tests} tests ; {self.errors} errors ; {self.failures} failures ; {self.skipped} skipped")
 
         for testclass in self.testclasses:
             current_duration = sum(testcase.time for testcase in self.testclasses[testclass])
-            print(f" - {testclass:<61}: {current_duration:>10}s ({100*current_duration/total:>5.2f}%)")
+            print(f" - {testclass:<61}: {current_duration:>10}s ({100*current_duration/total_duration:>5.2f}%)")
 
+    def print_report_class(self, classname):
+        tests = self.testclasses[classname]
+
+        print(f"{classname}: {len(tests)} tests found")
+
+        total_duration = sum(test.time for test in tests)
+        for test in tests:
+            print(f" - {test.name:<61}: {test.time:>10}s ({100*test.time/total_duration:>5.2f}%)")
 
 def main():
     tree = ElementTree.parse("tests/full_report.xml")
@@ -73,7 +82,7 @@ def main():
         name = testcase.attrib["name"]
         testsuite.add_testcase(classname=classname, name=name, time=time)
 
-    testsuite.print_class_percentages()
+    testsuite.print_report_class("deepinv.tests.test_models")
 
 
 if __name__ == "__main__":
