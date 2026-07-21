@@ -39,42 +39,40 @@ class TestClass:
     ### A file (e.g. deepinv.tests.test_models), can be a test class (e.g. deepinv.tests.test_external_libraries.TestTomographyWithAstra)
     def __init__(self, classname: str):
         self.classname = classname
-        self.testcases: list[TestCase] = []
         self.testfuncs: dict[str, TestFunc] = {}
 
     def add_testcase(self, testcase: TestCase):
         # split testcase name between name_function[parameters]
-        res = re.search(r"([a-z_]*)\[([a-z0-9-]*)\]", testcase.name)
+        res = re.search(r"([a-z_]*)\[([a-z0-9-.]*)\]", testcase.name)
         is_parametrized = res is not None
         if is_parametrized:
             func_name, parameters = res.groups()
         else:
             func_name = testcase.name
         
-        if not func_name in self.testfuncs:
+        if func_name not in self.testfuncs:
             self.testfuncs[func_name] = TestFunc(func_name)
         
         self.testfuncs[func_name].add_testcase(testcase)
-        self.testcases.append(testcase)
     
     def duration(self):
-        return sum(testcase.time for testcase in self.testcases)
+        return sum(testfunc.duration() for testfunc in self.testfuncs.values())
     
     def print_report(self, *, limit=0.0):
-        testclass = self
-        tests = sorted(testclass.testcases, key=lambda t: t.time, reverse=True)
+        tests = sorted(self.testfuncs.values(), key=lambda t: t.duration(), reverse=True)
+        total_duration = self.duration()
 
         print(f"{self.classname}: {len(tests)} tests found")
 
-        total_duration = sum(test.time for test in tests)
         for i, test in enumerate(tests):
-            if test.time < limit:
-                other_duration = sum(t.time for t in tests[i:])
+            current_duration = test.duration()
+            if current_duration < limit:
+                other_duration = sum(t.duration() for t in tests[i:])
                 num_other_tests = len(tests)-i
                 print(f" - OTHER ({num_other_tests} tests <{limit}s)                                      : {other_duration:>10.2f}s ({100*other_duration/total_duration:>5.2f}%) Avg. duration: {other_duration/num_other_tests:.2f}s")
                 return
 
-            print(f" - {test.name:<61}: {test.time:>10.2f}s ({100*test.time/total_duration:>5.2f}%)")
+            print(f" - {test.name:<61}: {current_duration:>10.2f}s ({100*current_duration/total_duration:>5.2f}%)")
 
 
 class TestSuite:
@@ -156,9 +154,9 @@ def parse_xml(path):
 def main():
     testsuite = parse_xml("tests/full_report.xml")
     
-    # testsuite.print_report_class("deepinv.tests.test_models", limit=10.0)
+    testsuite.print_report_class("deepinv.tests.test_models", limit=10.0)
     # testsuite.print_report()
-    testsuite.testclasses["deepinv.tests.test_models"].testfuncs["test_denoiser_sigma_color"].print_report(limit=10)
+    # testsuite.testclasses["deepinv.tests.test_models"].testfuncs["test_denoiser_sigma_color"].print_report(limit=10)
 
 
 if __name__ == "__main__":
