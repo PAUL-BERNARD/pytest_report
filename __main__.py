@@ -2,7 +2,6 @@ from xml.etree import ElementTree
 import re
 
 
-
 class TestCase:
     def __init__(self, name: str, time: int):
         self.name = name
@@ -13,26 +12,26 @@ class TestFunc:
     def __init__(self, name: str):
         self.name: str = name
         self.testcases: list[TestCase] = []
-    
+
     def add_testcase(self, testcase):
         self.testcases.append(testcase)
-    
+
     def duration(self):
         return sum(c.time for c in self.testcases)
-    
+
     def print_report(self, *, limit=0.0):
-        testcases = sorted(self.testcases, key=lambda c: c.time, reverse = True)
+        testcases = sorted(self.testcases, key=lambda c: c.time, reverse=True)
         total_duration = self.duration()
 
         print(f"{self.name}: {len(self.testcases)} tests ; Total duration: {total_duration}s")
         for i, testcase in enumerate(testcases):
             if testcase.time < limit:
                 other_duration = sum(c.time for c in testcases[i:])
-                num_other_cases = len(testcases)-i
-                print(f" - OTHER ({num_other_cases} cases <{limit}s)                                       : {other_duration:>10.2f}s ({100*other_duration/total_duration:>5.2f}%) Avg. duration: {other_duration/num_other_cases:.2f}s")
+                num_other_cases = len(testcases) - i
+                print(f" - OTHER ({num_other_cases} cases <{limit}s)                                       : {other_duration:>10.2f}s ({100 * other_duration / total_duration:>5.2f}%) Avg. duration: {other_duration / num_other_cases:.2f}s")
                 return
 
-            print(f" - {testcase.name:<61}: {testcase.time:>10.2f}s ({100*testcase.time/total_duration:>5.2f}%)")
+            print(f" - {testcase.name:<61}: {testcase.time:>10.2f}s ({100 * testcase.time / total_duration:>5.2f}%)")
 
 
 class TestClass:
@@ -49,15 +48,15 @@ class TestClass:
             func_name, parameters = res.groups()
         else:
             func_name = testcase.name
-        
+
         if func_name not in self.testfuncs:
             self.testfuncs[func_name] = TestFunc(func_name)
-        
+
         self.testfuncs[func_name].add_testcase(testcase)
-    
+
     def duration(self):
         return sum(testfunc.duration() for testfunc in self.testfuncs.values())
-    
+
     def print_report(self, *, limit=0.0):
         tests = sorted(self.testfuncs.values(), key=lambda t: t.duration(), reverse=True)
         total_duration = self.duration()
@@ -68,11 +67,11 @@ class TestClass:
             current_duration = test.duration()
             if current_duration < limit:
                 other_duration = sum(t.duration() for t in tests[i:])
-                num_other_tests = len(tests)-i
-                print(f" - OTHER ({num_other_tests} tests <{limit}s)                                      : {other_duration:>10.2f}s ({100*other_duration/total_duration:>5.2f}%) Avg. duration: {other_duration/num_other_tests:.2f}s")
+                num_other_tests = len(tests) - i
+                print(f" - OTHER ({num_other_tests} tests <{limit}s)                                      : {other_duration:>10.2f}s ({100 * other_duration / total_duration:>5.2f}%) Avg. duration: {other_duration / num_other_tests:.2f}s")
                 return
 
-            print(f" - {test.name:<61}: {current_duration:>10.2f}s ({100*current_duration/total_duration:>5.2f}%)")
+            print(f" - {test.name:<61}: {current_duration:>10.2f}s ({100 * current_duration / total_duration:>5.2f}%)")
 
 
 class TestSuite:
@@ -100,15 +99,15 @@ class TestSuite:
     def add_testcase(self, classname: str, testcase: TestCase):
         if not self.testclasses.get(classname):
             self.testclasses[classname] = TestClass(classname)
-        
+
         self.testclasses[classname].add_testcase(testcase)
-    
+
     def duration(self):
         return sum(testclass.duration() for testclass in self.testclasses.values())
 
     def print_report(self, *, limit=0.0):
         total_duration = self.duration()
-        testclasses = sorted(self.testclasses.values(), key = lambda t: t.duration(), reverse=True)
+        testclasses = sorted(self.testclasses.values(), key=lambda t: t.duration(), reverse=True)
         print(f"Total duration: {total_duration}s")
         print(f"{self.tests} tests ; {self.errors} errors ; {self.failures} failures ; {self.skipped} skipped")
 
@@ -117,14 +116,15 @@ class TestSuite:
 
             if current_duration < limit:
                 other_duration = sum(t.duration() for t in testclasses[i:])
-                num_other_classes = len(testclasses)-i
-                print(f" - OTHER ({num_other_classes} classes <{limit}s)                                  : {other_duration:>10.2f}s ({100*other_duration/total_duration:>5.2f}%) Avg. duration: {other_duration/num_other_classes:.2f}s")
+                num_other_classes = len(testclasses) - i
+                print(f" - OTHER ({num_other_classes} classes <{limit}s)                                  : {other_duration:>10.2f}s ({100 * other_duration / total_duration:>5.2f}%) Avg. duration: {other_duration / num_other_classes:.2f}s")
                 return
 
-            print(f" - {testclass.classname:<61}: {current_duration:>10.2f}s ({100*current_duration/total_duration:>5.2f}%)")
-    
+            print(f" - {testclass.classname:<61}: {current_duration:>10.2f}s ({100 * current_duration / total_duration:>5.2f}%)")
+
     def print_report_class(self, classname, **kwargs):
         self.testclasses[classname].print_report(**kwargs)
+
 
 def parse_xml(path):
     tree = ElementTree.parse(path)
@@ -147,13 +147,13 @@ def parse_xml(path):
         name = testcase.attrib["name"]
         testcase = TestCase(name, time)
         testsuite.add_testcase(classname=classname, testcase=testcase)
-    
+
     return testsuite
 
 
 def main():
     testsuite = parse_xml("tests/full_report.xml")
-    
+
     testsuite.print_report_class("deepinv.tests.test_models", limit=10.0)
     # testsuite.print_report()
     # testsuite.testclasses["deepinv.tests.test_models"].testfuncs["test_denoiser_sigma_color"].print_report(limit=10)
