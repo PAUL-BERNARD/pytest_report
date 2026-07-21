@@ -2,6 +2,13 @@ from xml.etree import ElementTree
 import re
 
 
+
+class TestCase:
+    def __init__(self, name: str, time: int):
+        self.name = name
+        self.time = time
+
+
 class TestFunc:
     def __init__(self, name: str):
         self.name: str = name
@@ -10,15 +17,16 @@ class TestFunc:
     def add_testcase(self, testcase):
         self.testcases.append(testcase)
     
-    def print_report(self):
-        ...
+    def duration(self):
+        return sum(c.time for c in self.testcases)
     
+    def print_report(self):
+        testcases = sorted(self.testcases, key=lambda c: c.time, reverse = True)
+        total_duration = self.duration()
 
-
-class TestCase:
-    def __init__(self, name: str, time: int):
-        self.name = name
-        self.time = time
+        print(f"{self.name}: {len(self.testcases)} tests ; Total duration: {total_duration}s")
+        for testcase in testcases:
+            print(f" - {testcase.name:<61}: {testcase.time:>10.2f}s ({100*testcase.time/total_duration:>5.2f}%)")
 
 
 class TestClass:
@@ -142,8 +150,9 @@ def parse_xml(path):
 def main():
     testsuite = parse_xml("tests/full_report.xml")
     
-    testsuite.print_report_class("deepinv.tests.test_models", limit=10.0)
+    # testsuite.print_report_class("deepinv.tests.test_models", limit=10.0)
     # testsuite.print_report()
+    testsuite.testclasses["deepinv.tests.test_models"].testfuncs["test_denoiser_sigma_color"].print_report(limit=10)
 
 
 if __name__ == "__main__":
