@@ -1,5 +1,6 @@
 from xml.etree import ElementTree
 import re
+import argparse
 
 
 class TestCase:
@@ -42,7 +43,7 @@ class TestClass:
 
     def add_testcase(self, testcase: TestCase):
         # split testcase name between name_function[parameters]
-        res = re.search(r"([a-z_]*)\[([a-z0-9-.]*)\]", testcase.name)
+        res = re.search(r"([A-Za-z0-9_]*)\[([A-Za-z0-9-._]*)\]", testcase.name)
         is_parametrized = res is not None
         if is_parametrized:
             func_name, parameters = res.groups()
@@ -123,7 +124,15 @@ class TestSuite:
             print(f" - {testclass.classname:<61}: {current_duration:>10.2f}s ({100 * current_duration / total_duration:>5.2f}%)")
 
     def print_report_class(self, classname, **kwargs):
-        self.testclasses[classname].print_report(**kwargs)
+        testclass = self.testclasses[classname]
+        testclass.print_report(**kwargs)
+    
+    def print_report_func(self, func_name, **kwargs):
+        classname, funcname = func_name.split("::")
+        testfunc = self.testclasses[classname].testfuncs[funcname]
+
+        testfunc.print_report(**kwargs)
+
 
 
 def parse_xml(path):
@@ -152,12 +161,22 @@ def parse_xml(path):
 
 
 def main():
-    testsuite = parse_xml("tests/full_report.xml")
+    parser = argparse.ArgumentParser(description="Analyze a JUnit report file")
+    parser.add_argument("-i", dest="path", type=str, help="Path of XML file", default="tests/full_report.xml")
+    parser.add_argument("-c", dest="file", type=str, help="Test class (test file name or test class name)", default="")
+    parser.add_argument("-f", dest="func", type=str, help="Test function name with class name (e.g.: deepinv.tests.test_models::test_denoiser_perf)", default="")
+    parser.add_argument("-l", dest="limit", type=float, help="Duration threshold in the report", default=10.0)
+    args = parser.parse_args()
+    testsuite = parse_xml(args.path)
 
-    testsuite.print_report_class("deepinv.tests.test_models", limit=10.0)
-    # testsuite.print_report()
-    # testsuite.testclasses["deepinv.tests.test_models"].testfuncs["test_denoiser_sigma_color"].print_report(limit=10)
-
+    if args.func:
+        testsuite.print_report_func(args.func, limit=args.limit)
+    elif args.file:
+        testsuite.print_report_class(args.file, limit=args.limit)
+        print("Run `pytest_report -f <function_name>` to get a report of a specific function")
+    else:
+        testsuite.print_report()
+        print("Run `pytest_report -c <class_name>` to get a report of a specific class")
 
 if __name__ == "__main__":
     main()
