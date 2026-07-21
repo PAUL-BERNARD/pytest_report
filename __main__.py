@@ -20,12 +20,18 @@ class TestFunc:
     def duration(self):
         return sum(c.time for c in self.testcases)
     
-    def print_report(self):
+    def print_report(self, *, limit=0.0):
         testcases = sorted(self.testcases, key=lambda c: c.time, reverse = True)
         total_duration = self.duration()
 
         print(f"{self.name}: {len(self.testcases)} tests ; Total duration: {total_duration}s")
-        for testcase in testcases:
+        for i, testcase in enumerate(testcases):
+            if testcase.time < limit:
+                other_duration = sum(c.time for c in testcases[i:])
+                num_other_cases = len(testcases)-i
+                print(f" - OTHER ({num_other_cases} cases <{limit}s)                                       : {other_duration:>10.2f}s ({100*other_duration/total_duration:>5.2f}%) Avg. duration: {other_duration/num_other_cases:.2f}s")
+                return
+
             print(f" - {testcase.name:<61}: {testcase.time:>10.2f}s ({100*testcase.time/total_duration:>5.2f}%)")
 
 
@@ -65,7 +71,7 @@ class TestClass:
             if test.time < limit:
                 other_duration = sum(t.time for t in tests[i:])
                 num_other_tests = len(tests)-i
-                print(f" - Other ({num_other_tests} tests <{limit}s)                                      : {other_duration:>10.2f}s ({100*other_duration/total_duration:>5.2f}%) Avg. duration: {other_duration/num_other_tests:.2f}s")
+                print(f" - OTHER ({num_other_tests} tests <{limit}s)                                      : {other_duration:>10.2f}s ({100*other_duration/total_duration:>5.2f}%) Avg. duration: {other_duration/num_other_tests:.2f}s")
                 return
 
             print(f" - {test.name:<61}: {test.time:>10.2f}s ({100*test.time/total_duration:>5.2f}%)")
@@ -114,7 +120,7 @@ class TestSuite:
             if current_duration < limit:
                 other_duration = sum(t.duration() for t in testclasses[i:])
                 num_other_classes = len(testclasses)-i
-                print(f" - Other ({num_other_classes} classes <{limit}s)                                  : {other_duration:>10.2f}s ({100*other_duration/total_duration:>5.2f}%) Avg. duration: {other_duration/num_other_classes:.2f}s")
+                print(f" - OTHER ({num_other_classes} classes <{limit}s)                                  : {other_duration:>10.2f}s ({100*other_duration/total_duration:>5.2f}%) Avg. duration: {other_duration/num_other_classes:.2f}s")
                 return
 
             print(f" - {testclass.classname:<61}: {current_duration:>10.2f}s ({100*current_duration/total_duration:>5.2f}%)")
