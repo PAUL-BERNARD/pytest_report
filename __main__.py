@@ -1,14 +1,18 @@
 from xml.etree import ElementTree
-from collections import defaultdict
+import re
 
 
 class TestFunc:
     def __init__(self, name: str):
-        self.name = name
-        self.testcases = []
+        self.name: str = name
+        self.testcases: list[TestCase] = []
     
     def add_testcase(self, testcase):
         self.testcases.append(testcase)
+    
+    def print_report(self):
+        ...
+    
 
 
 class TestCase:
@@ -22,12 +26,41 @@ class TestClass:
     def __init__(self, classname: str):
         self.classname = classname
         self.testcases: list[TestCase] = []
+        self.testfuncs: dict[str, TestFunc] = {}
 
     def add_testcase(self, testcase: TestCase):
+        # split testcase name between name_function[parameters]
+        res = re.search(r"([a-z_]*)\[([a-z0-9-]*)\]", testcase.name)
+        is_parametrized = res is not None
+        if is_parametrized:
+            func_name, parameters = res.groups()
+        else:
+            func_name = testcase.name
+        
+        if not func_name in self.testfuncs:
+            self.testfuncs[func_name] = TestFunc(func_name)
+        
+        self.testfuncs[func_name].add_testcase(testcase)
         self.testcases.append(testcase)
     
     def duration(self):
         return sum(testcase.time for testcase in self.testcases)
+    
+    def print_report(self, *, limit=0.0):
+        testclass = self
+        tests = sorted(testclass.testcases, key=lambda t: t.time, reverse=True)
+
+        print(f"{self.classname}: {len(tests)} tests found")
+
+        total_duration = sum(test.time for test in tests)
+        for i, test in enumerate(tests):
+            if test.time < limit:
+                other_duration = sum(t.time for t in tests[i:])
+                num_other_tests = len(tests)-i
+                print(f" - Other ({num_other_tests} tests <{limit}s)                                      : {other_duration:>10.2f}s ({100*other_duration/total_duration:>5.2f}%) Avg. duration: {other_duration/num_other_tests:.2f}s")
+                return
+
+            print(f" - {test.name:<61}: {test.time:>10.2f}s ({100*test.time/total_duration:>5.2f}%)")
 
 
 class TestSuite:
@@ -71,28 +104,15 @@ class TestSuite:
             current_duration = testclass.duration()
 
             if current_duration < limit:
-                other_duration = sum(t.time for t in testclasses[i:])
+                other_duration = sum(t.duration() for t in testclasses[i:])
                 num_other_classes = len(testclasses)-i
-                print(f" - Other ({num_other_classes} classes)                                          : {other_duration:>10}s ({100*other_duration/total_duration:>5.2f}%) Avg. duration: {other_duration/num_other_classes:.2f}s")
+                print(f" - Other ({num_other_classes} classes <{limit}s)                                  : {other_duration:>10.2f}s ({100*other_duration/total_duration:>5.2f}%) Avg. duration: {other_duration/num_other_classes:.2f}s")
                 return
 
-            print(f" - {testclass.classname:<61}: {current_duration:>10}s ({100*current_duration/total_duration:>5.2f}%)")
-
-    def print_report_class(self, classname, *, limit=0.0):
-        tests = self.testclasses[classname]
-        tests = sorted(tests, key=lambda t: t.time, reverse=True)
-
-        print(f"{classname}: {len(tests)} tests found")
-
-        total_duration = sum(test.time for test in tests)
-        for i, test in enumerate(tests):
-            if test.time < limit:
-                other_duration = sum(t.time for t in tests[i:])
-                num_other_tests = len(tests)-i
-                print(f" - Other ({num_other_tests} tests)                                              : {other_duration:>10}s ({100*other_duration/total_duration:>5.2f}%) Avg. duration: {other_duration/num_other_tests:.2f}s")
-                return
-
-            print(f" - {test.name:<61}: {test.time:>10}s ({100*test.time/total_duration:>5.2f}%)")
+            print(f" - {testclass.classname:<61}: {current_duration:>10.2f}s ({100*current_duration/total_duration:>5.2f}%)")
+    
+    def print_report_class(self, classname, **kwargs):
+        self.testclasses[classname].print_report(**kwargs)
 
 def parse_xml(path):
     tree = ElementTree.parse(path)
@@ -122,8 +142,8 @@ def parse_xml(path):
 def main():
     testsuite = parse_xml("tests/full_report.xml")
     
-    # testsuite.print_report_class("deepinv.tests.test_models", limit=10.0)
-    testsuite.print_report()
+    testsuite.print_report_class("deepinv.tests.test_models", limit=10.0)
+    # testsuite.print_report()
 
 
 if __name__ == "__main__":
