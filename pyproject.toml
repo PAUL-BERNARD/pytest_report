@@ -1,3 +1,17 @@
+[project]
+name = "pytest_report"
+version = "0.0.1"
+authors = [
+  { name="PAUL BERNARD", email="Paul.Bernard@inria.fr" },
+]
+description = "A small tool to read a pytest XML report"
+readme = "README.md"
+requires-python = ">=3.9"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+]
+
 [tool.ruff]
 
 line-length = 300
