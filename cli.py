@@ -4,7 +4,7 @@ import argparse
 
 
 class TestCase:
-    def __init__(self, name: str, time: int):
+    def __init__(self, name: str, time: float):
         self.name = name
         self.time = time
 
@@ -175,7 +175,7 @@ def main():
         testsuite.print_report_class(args.file, limit=args.limit)
         print("Run `pytest_report -f <function_name>` to get a report of a specific function")
     else:
-        testsuite.print_report()
+        testsuite.print_report(limit=args.limit)
         print("Run `pytest_report -c <class_name>` to get a report of a specific class")
 
 if __name__ == "__main__":
